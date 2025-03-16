@@ -83,41 +83,40 @@ def update_graph(_, ticker, expiration_date):
     
     fig = go.Figure()
 
-    # Add price chart
     fig.add_trace(go.Scatter(
         x=data.index, y=data['Close'], mode='lines', name='Price', 
         line=dict(color='white', width=2)
     ))
 
-    # Add strike prices with different colors
     for _, row in top_calls_oi.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='green', width=2), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='green', width=1), annotation_text=f"{row['strike']}")
     for _, row in top_puts_oi.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='red', width=2), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='red', width=1), annotation_text=f"{row['strike']}")
     for _, row in top_calls_vol.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='blue', width=2), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='blue', width=1), annotation_text=f"{row['strike']}")
     for _, row in top_puts_vol.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='yellow', width=2), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='yellow', width=1), annotation_text=f"{row['strike']}")
 
-    # Customize layout to resemble Finviz style
     fig.update_layout(
-        #title=title,
         xaxis=dict(
             title="Time", 
             rangeslider=dict(visible=True),
             type="date",
-            showspikes=True, spikecolor="grey", spikemode="across"
+            showspikes=True, spikecolor="grey", spikemode="across",
+            fixedrange=False  # Allow zooming on X axis
         ),
         yaxis=dict(
             title="Price",
             showspikes=True, spikecolor="grey", spikemode="across",
-            fixedrange=False  # Allow zooming on Y-axis
+            fixedrange=False  # Allow zooming on Y axis as well
         ),
-        dragmode="pan",  # Set dragmode to zoom for both axes
+        dragmode= "zoom",  # Enable zoom on both axes
         plot_bgcolor='black',
         paper_bgcolor='black',
         font=dict(color='white'),
-        margin=dict(l=40, r=60, t=40, b=40),  
+        margin=dict(l=40, r=40, t=40, b=40),  # Padding around the plot
+        autosize=True,  # Ensure the graph size is automatically adjusted
+        hovermode="closest",  # Show hover information closest to the mouse cursor
         updatemenus=[{
             "buttons": [
                 {"args": ["xaxis.range", [data.index.min(), data.index.max()]], "label": "Reset Zoom", "method": "relayout"},
@@ -127,8 +126,7 @@ def update_graph(_, ticker, expiration_date):
             ],
             "direction": "down",
             "showactive": True,
-        }],
-        hovermode="closest",  # This shows the hover interaction closest to the cursor
+        }]
     )
 
     return title, fig
