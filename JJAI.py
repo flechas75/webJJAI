@@ -35,7 +35,7 @@ app.layout = html.Div(
     children=[
         html.H1(id="title", style={'textAlign': 'center'}),
         dcc.Input(id="symbol-input", type="text", debounce=True, style={'textAlign': 'center', 'margin': '10px'}),
-        html.Div("Please select ticker", style={'textAlign': 'center', 'fontSize': 8}),
+        html.Div("Please select ticker", style={'textAlign': 'left', 'fontSize': 8}),
         dcc.Interval(id='interval', interval=60000, n_intervals=0),
         dcc.Graph(id='options-graph')
     ]
