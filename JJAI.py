@@ -83,21 +83,25 @@ def update_graph(_, ticker, expiration_date):
     
     fig = go.Figure()
 
+    # Add price chart
     fig.add_trace(go.Scatter(
         x=data.index, y=data['Close'], mode='lines', name='Price', 
         line=dict(color='white', width=2)
     ))
 
+    # Add strike prices with different colors
     for _, row in top_calls_oi.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='green', width=1), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='green', width=2), annotation_text=f"{row['strike']}")
     for _, row in top_puts_oi.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='red', width=1), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='red', width=2), annotation_text=f"{row['strike']}")
     for _, row in top_calls_vol.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='blue', width=1), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='blue', width=2), annotation_text=f"{row['strike']}")
     for _, row in top_puts_vol.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='yellow', width=1), annotation_text=f"{row['strike']}")
+        fig.add_hline(y=row['strike'], line=dict(color='yellow', width=2), annotation_text=f"{row['strike']}")
 
+    # Customize layout to resemble Finviz style
     fig.update_layout(
+        #title=title,
         xaxis=dict(
             title="Time", 
             rangeslider=dict(visible=True),
@@ -106,25 +110,25 @@ def update_graph(_, ticker, expiration_date):
         ),
         yaxis=dict(
             title="Price",
-            showspikes=True, spikecolor="grey", spikemode="across"
+            showspikes=True, spikecolor="grey", spikemode="across",
+            fixedrange=False  # Allow zooming on Y-axis
         ),
-        dragmode="pan",
+        dragmode="pan",  # Set dragmode to zoom for both axes
         plot_bgcolor='black',
         paper_bgcolor='black',
-        font_color='white',
-        margin=dict(l=40, r=40, t=40, b=40),  
-        updatemenus=[
-            {
-                "buttons": [
-                    {"args": ["xaxis.range", [data.index.min(), data.index.max()]], "label": "Reset Zoom", "method": "relayout"},
-                    {"args": ["xaxis.range", [data.index.max() - timedelta(days=1), data.index.max()]], "label": "1D", "method": "relayout"},
-                    {"args": ["xaxis.range", [data.index.max() - timedelta(days=7), data.index.max()]], "label": "1W", "method": "relayout"},
-                    {"args": ["xaxis.range", [data.index.max() - timedelta(days=30), data.index.max()]], "label": "1M", "method": "relayout"},
-                ],
-                "direction": "down",
-                "showactive": True,
-            }
-        ]
+        font=dict(color='white'),
+        margin=dict(l=40, r=60, t=40, b=40),  
+        updatemenus=[{
+            "buttons": [
+                {"args": ["xaxis.range", [data.index.min(), data.index.max()]], "label": "Reset Zoom", "method": "relayout"},
+                {"args": ["xaxis.range", [data.index.max() - timedelta(days=1), data.index.max()]], "label": "1D", "method": "relayout"},
+                {"args": ["xaxis.range", [data.index.max() - timedelta(days=7), data.index.max()]], "label": "1W", "method": "relayout"},
+                {"args": ["xaxis.range", [data.index.max() - timedelta(days=30), data.index.max()]], "label": "1M", "method": "relayout"},
+            ],
+            "direction": "down",
+            "showactive": True,
+        }],
+        hovermode="closest",  # This shows the hover interaction closest to the cursor
     )
 
     return title, fig
