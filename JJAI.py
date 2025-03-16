@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 app = dash.Dash(__name__)
 server = app.server  # For deployment
 
-# Function to fetch data based on symbol and expiration date
+# Function to fetch stock and options data
 def fetch_data(ticker, expiration_date):
     stock = yf.Ticker(ticker)
     
@@ -50,6 +50,12 @@ app.layout = html.Div(
             style={'textAlign': 'center', 'margin': '8px'}
         ),
 
+        # Buttons to scale Y-axis
+        html.Div([
+            html.Button("Scale Up", id="scale-up", n_clicks=0, style={'margin': '5px'}),
+            html.Button("Scale Down", id="scale-down", n_clicks=0, style={'margin': '5px'}),
+        ], style={'textAlign': 'center'}),
+
         dcc.Interval(id='interval', interval=60000, n_intervals=0),
         dcc.Graph(id='options-graph')
     ]
@@ -60,9 +66,11 @@ app.layout = html.Div(
      dd.Output('options-graph', 'figure')],
     [dd.Input('interval', 'n_intervals'),
      dd.Input('symbol-input', 'value'),
-     dd.Input('expiration-date-picker', 'date')]  
+     dd.Input('expiration-date-picker', 'date'),
+     dd.Input('scale-up', 'n_clicks'),
+     dd.Input('scale-down', 'n_clicks')]
 )
-def update_graph(_, ticker, expiration_date):
+def update_graph(_, ticker, expiration_date, scale_up_clicks, scale_down_clicks):
     if not ticker:
         return "Please select ticker", go.Figure()  
     
@@ -79,7 +87,7 @@ def update_graph(_, ticker, expiration_date):
     if data is None:
         return f"Error fetching data for {ticker} with expiration {expiration_date}", go.Figure()
 
-    title = f"Target Price Zones to Trade  {ticker}"
+    title = f"Target Price Zones to Trade {ticker}"
     
     fig = go.Figure()
 
@@ -97,6 +105,16 @@ def update_graph(_, ticker, expiration_date):
     for _, row in top_puts_vol.iterrows():
         fig.add_hline(y=row['strike'], line=dict(color='yellow', width=1), annotation_text=f"{row['strike']}")
 
+    # --- Y-Axis Scaling Logic ---
+    y_min = data['Close'].min()
+    y_max = data['Close'].max()
+    scale_factor = 0.05  # Adjust how much it scales per click
+
+    # Apply Y-axis scaling based on button clicks
+    scale_change = (scale_up_clicks - scale_down_clicks) * scale_factor
+    y_range = [(y_min - y_min * scale_change), (y_max + y_max * scale_change)]
+
+    # Update layout
     fig.update_layout(
         xaxis=dict(
             title="Time", 
@@ -107,16 +125,16 @@ def update_graph(_, ticker, expiration_date):
         ),
         yaxis=dict(
             title="Price",
+            range=y_range,  # Adjusted Y-axis range
             showspikes=True, spikecolor="grey", spikemode="across",
             fixedrange=False  # Allow zooming on Y axis as well
         ),
-        dragmode= "zoom",  # Enable zoom on both axes
+        dragmode="pan",  # Pan mode to move around the chart
         plot_bgcolor='black',
         paper_bgcolor='black',
         font=dict(color='white'),
-        margin=dict(l=40, r=40, t=40, b=40),  # Padding around the plot
-        autosize=True,  # Ensure the graph size is automatically adjusted
-        hovermode="closest",  # Show hover information closest to the mouse cursor
+        margin=dict(l=40, r=40, t=40, b=40),
+        hovermode="closest",
         updatemenus=[{
             "buttons": [
                 {"args": ["xaxis.range", [data.index.min(), data.index.max()]], "label": "Reset Zoom", "method": "relayout"},
