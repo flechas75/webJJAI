@@ -10,12 +10,17 @@ from datetime import datetime, timedelta
 app = dash.Dash(__name__)
 server = app.server  # For deployment
 
-# Function to fetch data based on symbol
-def fetch_data(ticker):
+# Function to fetch data based on symbol and expiration date
+def fetch_data(ticker, expiration_date):
     stock = yf.Ticker(ticker)
-    expiration_date = '2025-03-21'
-    calls = stock.option_chain(expiration_date).calls
-    puts = stock.option_chain(expiration_date).puts
+    
+    try:
+        # Try to fetch the options data for the given expiration date
+        calls = stock.option_chain(expiration_date).calls
+        puts = stock.option_chain(expiration_date).puts
+    except Exception as e:
+        print(f"Error fetching options data: {e}")
+        return None, None, None, None, None
     
     # Get top strikes by open interest and volume
     top_calls_oi = calls.nlargest(5, 'openInterest')[['strike', 'openInterest']]
@@ -36,6 +41,16 @@ app.layout = html.Div(
         html.H1(id="title", style={'textAlign': 'center'}),
         dcc.Input(id="symbol-input", type="text", debounce=True, style={'textAlign': 'center', 'margin': '10px'}),
         html.Div("Please select ticker", style={'textAlign': 'left', 'fontSize': 8}),
+        
+        # New input field for expiration date
+        dcc.Input(
+            id='expiration-date-input',
+            type='text',
+            debounce=True,
+            placeholder='YYYY-MM-DD',  # Placeholder text
+            style={'textAlign': 'center', 'margin': '10px'}
+        ),
+        
         dcc.Interval(id='interval', interval=60000, n_intervals=0),
         dcc.Graph(id='options-graph')
     ]
@@ -45,23 +60,37 @@ app.layout = html.Div(
     [dd.Output('title', 'children'),
      dd.Output('options-graph', 'figure')],
     [dd.Input('interval', 'n_intervals'),
-     dd.Input('symbol-input', 'value')]
+     dd.Input('symbol-input', 'value'),
+     dd.Input('expiration-date-input', 'value')]  # Capture expiration date input
 )
-def update_graph(_, ticker):
+def update_graph(_, ticker, expiration_date):
     if not ticker:
         return "Please select ticker", go.Figure()  # Return an empty figure if no ticker is provided
     
-    data, top_calls_oi, top_puts_oi, top_calls_vol, top_puts_vol = fetch_data(ticker)
+    # If no expiration date is provided, set the default expiration date
+    if not expiration_date:
+        expiration_date = '2025-03-21'  # Default expiration date if not provided
+
+    # Validate the expiration date format
+    try:
+        datetime.strptime(expiration_date, '%Y-%m-%d')  # Validate date format
+    except ValueError:
+        return "Invalid date format. Please use 'YYYY-MM-DD'", go.Figure()  # Return error message if invalid
     
+    # Fetch data using the given expiration date
+    data, top_calls_oi, top_puts_oi, top_calls_vol, top_puts_vol = fetch_data(ticker, expiration_date)
+    
+    if data is None:
+        return f"Error fetching data for {ticker} with expiration {expiration_date}", go.Figure()
+
     # Update the title
-    title = f"{ticker} Best Zones to Trade"
+    title = f"{ticker} Best Zones to Trade for {expiration_date}"
     
     # Create the figure
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='markers', name='Price', 
                              marker=dict(symbol='star', color='white', size=8)))
 
-    
     for _, row in top_calls_oi.iterrows():
         fig.add_hline(y=row['strike'], line=dict(color='green'), annotation_text=f" {row['strike']}")
     for _, row in top_puts_oi.iterrows():
@@ -73,7 +102,7 @@ def update_graph(_, ticker):
     
     # Set background color for the graph only
     fig.update_layout(
-        title=f"{ticker} Analysis", 
+        title=f"{ticker} Analysis for {expiration_date}", 
         xaxis_title="Time", 
         yaxis_title="Price", 
         plot_bgcolor='black',  # Set graph background color
