@@ -115,14 +115,24 @@ def update_graph(_, ticker, expiration_date, scale_up_clicks, scale_down_clicks)
         line=dict(color='white', width=2)
     ))
 
-    for _, row in top_calls_oi.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='green', width=1), annotation_text=f"{row['strike']}")
-    for _, row in top_puts_oi.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='red', width=1), annotation_text=f"{row['strike']}")
-    for _, row in top_calls_vol.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='blue', width=1), annotation_text=f"{row['strike']}")
-    for _, row in top_puts_vol.iterrows():
-        fig.add_hline(y=row['strike'], line=dict(color='yellow', width=1), annotation_text=f"{row['strike']}")
+    ## Combine all strike prices and sort them in ascending order
+    all_strikes = pd.concat([
+        top_calls_oi['strike'], top_puts_oi['strike'], 
+        top_calls_vol['strike'], top_puts_vol['strike']
+    ]).dropna().unique()  # Drop NaN values just in case
+
+    all_strikes = sorted(all_strikes)  # Ensure ascending order
+
+    # Now iterate over the sorted strikes and plot them correctly
+    for strike in all_strikes:
+        if strike in top_calls_oi['strike'].values:
+            fig.add_hline(y=strike, line=dict(color='green', width=1), annotation_text=f"{strike}")
+        if strike in top_puts_oi['strike'].values:
+            fig.add_hline(y=strike, line=dict(color='red', width=1), annotation_text=f"{strike}")
+        if strike in top_calls_vol['strike'].values:
+            fig.add_hline(y=strike, line=dict(color='blue', width=1), annotation_text=f"{strike}")
+        if strike in top_puts_vol['strike'].values:
+            fig.add_hline(y=strike, line=dict(color='yellow', width=1), annotation_text=f"{strike}")
 
     # --- Y-Axis Scaling Logic ---
     y_min = data['Close'].min()
