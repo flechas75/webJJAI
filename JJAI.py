@@ -2,7 +2,6 @@ import dash
 from dash import dcc, html
 import dash.dependencies as dd
 import yfinance as yf
-import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import pytz
@@ -12,7 +11,7 @@ app = dash.Dash(__name__)
 server = app.server  # For deployment
 
 # Function to fetch stock and options data
-def fetch_data(ticker, expiration_date):
+def fetch_data(ticker, expiration_date, start_time, end_time):
     stock = yf.Ticker(ticker)
     
     try:
@@ -27,157 +26,185 @@ def fetch_data(ticker, expiration_date):
     top_calls_vol = calls.nlargest(5, 'volume')[['strike', 'volume']]
     top_puts_vol = puts.nlargest(5, 'volume')[['strike', 'volume']]
     
-    end_time = datetime.now(pytz.timezone('US/Eastern')).replace(hour=16, minute=5, second=0, microsecond=0)
-    start_time = end_time - timedelta(days=10)  
     data = stock.history(start=start_time, end=end_time, interval='5m')
     
     return data, top_calls_oi, top_puts_oi, top_calls_vol, top_puts_vol
 
+# Function to fetch historical data for additional charts
+def fetch_chart_data(ticker, interval='1h'):
+    stock = yf.Ticker(ticker)
+    end_time = datetime.now(pytz.timezone('US/Eastern'))
+    start_time = end_time - timedelta(days=1)
+    data = stock.history(start=start_time, end=end_time, interval=interval)
+    return data
+
+# Function to create small charts
+def create_chart(ticker):
+    data = fetch_chart_data(ticker)
+    fig = go.Figure()
+    if not data.empty:
+        fig.add_trace(go.Candlestick(
+            x=data.index,
+            open=data['Open'],
+            high=data['High'],
+            low=data['Low'],
+            close=data['Close'],
+            name=ticker
+        ))
+    fig.update_layout(
+        title=ticker,
+        xaxis_title='',
+        yaxis_title='',
+        plot_bgcolor='black',
+        paper_bgcolor='black',
+        font=dict(color='white', size=6),
+        xaxis=dict(showgrid=True, showticklabels=True, tickformat='%H:%M', dtick=7200000),
+        yaxis=dict(showgrid=True, showticklabels=True),
+        margin=dict(l=1, r=5, t=20, b=0)
+    )
+    return fig
+
 # Layout
 app.layout = html.Div(
-    style={'backgroundColor': 'black', 'color': 'white', 'padding': '20px'},  
+    style={'backgroundColor': 'black', 'color': 'white', 'padding': '20px', 'display': 'flex'},
     children=[
-        # Main title
-        html.H1(id="title", style={'textAlign': 'center'}),
-
-        # Title displaying close price and time
+        # Sidebar for filtering options on the left side
         html.Div(
-            id="close-price-title", 
-            children=[],  # This will be dynamically updated with the close price info
-            style={'textAlign': 'center', 'fontSize': '10px', 'marginTop': '10px'}
+            style={
+                'width': '200px', 
+                'backgroundColor': 'black', 
+                'padding': '10px', 
+                'display': 'flex', 
+                'flexDirection': 'column',
+                'alignItems': 'center',
+                'borderRight': '2px solid white',
+                'height': '100vh'
+            },
+            children=[
+                html.H3('Filter Options', style={'color': 'white'}),
+                html.Button("1D", id="filter-1d", n_clicks=0, style={'margin': '5px', 'backgroundColor': 'gray', 'color': 'white'}),
+                html.Button("1W", id="filter-1w", n_clicks=0, style={'margin': '5px', 'backgroundColor': 'gray', 'color': 'white'}),
+                html.Button("1M", id="filter-1m", n_clicks=0, style={'margin': '5px', 'backgroundColor': 'gray', 'color': 'white'}),
+                html.Button("Scale Up", id="scale-up", n_clicks=0, style={'margin': '5px', 'backgroundColor': 'gray', 'color': 'white'}),
+                html.Button("Scale Down", id="scale-down", n_clicks=0, style={'margin': '5px', 'backgroundColor': 'gray', 'color': 'white'}),
+                dcc.Input(id="symbol-input", type="text", debounce=True, placeholder="Enter ticker", style={'margin': '10px', 'color': 'black'}),
+                dcc.DatePickerSingle(
+                    id='expiration-date-picker',
+                    min_date_allowed=datetime.today(),
+                    max_date_allowed=datetime.today() + timedelta(days=365),
+                    date=datetime.today().strftime('%Y-%m-%d'),
+                    display_format='YYYY-MM-DD',
+                    style={'margin': '8px'}
+                ),
+            ]
         ),
+        
+        # Main content for charts (top small charts and main chart area)
+        html.Div(
+            style={'flex': 1, 'marginLeft': '10px'}, 
+            children=[
+                # Small Charts at the top
+                html.Div(
+                    children=[
+                        dcc.Graph(
+                            id='chart-NQ',
+                            figure=create_chart('NQ=F'),
+                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                        ),
+                        dcc.Graph(
+                            id='chart-ES',
+                            figure=create_chart('ES=F'),
+                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                        ),
+                        dcc.Graph(
+                            id='chart-RY',
+                            figure=create_chart('RY=F'),
+                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                        ),
+                        dcc.Graph(
+                            id='chart-YM',
+                            figure=create_chart('YM=F'),
+                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                        )
+                    ],
+                    style={'textAlign': 'center', 'marginBottom': '10px', 'display': 'flex', 'justifyContent': 'center'}
+                ),
 
-        dcc.Input(id="symbol-input", type="text", debounce=True, placeholder="Enter ticker", 
-                  style={'textAlign': 'left', 'margin': '10px'}),
-
-        # Date picker for expiration date
-        dcc.DatePickerSingle(
-            id='expiration-date-picker',
-            min_date_allowed=datetime.today(),
-            max_date_allowed=datetime.today() + timedelta(days=365),
-            date=datetime.today().strftime('%Y-%m-%d'),
-            display_format='YYYY-MM-DD',
-            style={'textAlign': 'center', 'margin': '8px'}
-        ),
-
-        # Buttons to scale Y-axis
-        html.Div([
-            html.Button("Scale Up", id="scale-up", n_clicks=0, style={'margin': '5px'}),
-            html.Button("Scale Down", id="scale-down", n_clicks=0, style={'margin': '5px'}),
-        ], style={'textAlign': 'center'}),
-
-        dcc.Interval(id='interval', interval=60000, n_intervals=0),
-        dcc.Graph(id='options-graph')
+                # Main chart below the small charts
+                dcc.Graph(id='options-graph')
+            ]
+        )
     ]
 )
 
+# Callback for scaling charts and filtering data
 @app.callback(
-    [dd.Output('title', 'children'),
-     dd.Output('close-price-title', 'children'),
-     dd.Output('options-graph', 'figure')],
-    [dd.Input('interval', 'n_intervals'),
-     dd.Input('symbol-input', 'value'),
+    [dd.Output('options-graph', 'figure'),
+     dd.Output('chart-NQ', 'style'),
+     dd.Output('chart-ES', 'style'),
+     dd.Output('chart-RY', 'style'),
+     dd.Output('chart-YM', 'style')],
+    [dd.Input('symbol-input', 'value'),
      dd.Input('expiration-date-picker', 'date'),
+     dd.Input('filter-1d', 'n_clicks'),
+     dd.Input('filter-1w', 'n_clicks'),
+     dd.Input('filter-1m', 'n_clicks'),
      dd.Input('scale-up', 'n_clicks'),
      dd.Input('scale-down', 'n_clicks')]
 )
-def update_graph(_, ticker, expiration_date, scale_up_clicks, scale_down_clicks):
+def update_charts(ticker, expiration_date, filter_1d, filter_1w, filter_1m, scale_up, scale_down):
+    ctx = dash.callback_context
+
     if not ticker:
-        return "Please select ticker", "", go.Figure()  
+        return go.Figure(), {'height': '220px'}, {'height': '220px'}, {'height': '220px'}, {'height': '220px'}
+
+    # Handle time filtering based on button clicks
+    if ctx.triggered:
+        button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        
+        if button_id == 'filter-1d':
+            start_time = datetime.now(pytz.timezone('US/Eastern')) - timedelta(days=1)
+            end_time = datetime.now(pytz.timezone('US/Eastern'))
+        elif button_id == 'filter-1w':
+            start_time = datetime.now(pytz.timezone('US/Eastern')) - timedelta(weeks=1)
+            end_time = datetime.now(pytz.timezone('US/Eastern'))
+        elif button_id == 'filter-1m':
+            start_time = datetime.now(pytz.timezone('US/Eastern')) - timedelta(weeks=4)
+            end_time = datetime.now(pytz.timezone('US/Eastern'))
+        else:
+            start_time = datetime.now(pytz.timezone('US/Eastern')) - timedelta(days=1)
+            end_time = datetime.now(pytz.timezone('US/Eastern'))
     
-    if not expiration_date:
-        expiration_date = datetime.today().strftime('%Y-%m-%d')
+    # Fetch main chart data
+    data, top_calls_oi, top_puts_oi, top_calls_vol, top_puts_vol = fetch_data(ticker, expiration_date, start_time, end_time)
+    if data is None or data.empty:
+        return go.Figure(), {'height': '220px'}, {'height': '220px'}, {'height': '220px'}, {'height': '220px'}
 
-    try:
-        datetime.strptime(expiration_date, '%Y-%m-%d')  
-    except ValueError:
-        return "Invalid date format. Please use 'YYYY-MM-DD'", "", go.Figure()  
-    
-    data, top_calls_oi, top_puts_oi, top_calls_vol, top_puts_vol = fetch_data(ticker, expiration_date)
-    
-    if data is None:
-        return f"Error fetching data for {ticker} with expiration {expiration_date}", "", go.Figure()
-
-    # Get the latest close price and timestamp
-    latest_close = data['Close'].iloc[-1]
-    close_time = data.index[-1].strftime('%Y-%m-%d %H:%M')
-
-    # Title including latest close price
-    title = f"Target Price Zones to Trade {ticker}"
-
-    # Second title displaying latest close price and time
-    close_price_title = f"Latest price of {ticker} at {close_time} was ${latest_close:.2f}"
-
+    # Create the main chart figure
     fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=data.index, y=data['Close'], mode='lines', name='Price', 
-        line=dict(color='white', width=2)
-    ))
-
-    ## Combine all strike prices and sort them in ascending order
-    all_strikes = pd.concat([
-        top_calls_oi['strike'], top_puts_oi['strike'], 
-        top_calls_vol['strike'], top_puts_vol['strike']
-    ]).dropna().unique()  # Drop NaN values just in case
-
-    all_strikes = sorted(all_strikes)  # Ensure ascending order
-
-    # Now iterate over the sorted strikes and plot them correctly
-    for strike in all_strikes:
-        if strike in top_calls_oi['strike'].values:
-            fig.add_hline(y=strike, line=dict(color='green', width=1), annotation_text=f"{strike}")
-        if strike in top_puts_oi['strike'].values:
-            fig.add_hline(y=strike, line=dict(color='red', width=1), annotation_text=f"{strike}")
-        if strike in top_calls_vol['strike'].values:
-            fig.add_hline(y=strike, line=dict(color='blue', width=1), annotation_text=f"{strike}")
-        if strike in top_puts_vol['strike'].values:
-            fig.add_hline(y=strike, line=dict(color='yellow', width=1), annotation_text=f"{strike}")
-
-    # --- Y-Axis Scaling Logic ---
-    y_min = data['Close'].min()
-    y_max = data['Close'].max()
-    scale_factor = 0.05  # Adjust how much it scales per click
-
-    # Apply Y-axis scaling based on button clicks
-    scale_change = (scale_up_clicks - scale_down_clicks) * scale_factor
-    y_range = [(y_min - y_min * scale_change), (y_max + y_max * scale_change)]
-
-    # Update layout
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Price', line=dict(color='white', width=2)))
+    
+    for strike in top_calls_oi['strike']:
+        fig.add_hline(y=strike, line=dict(color='green', width=1), annotation_text=f" {strike}")
+    for strike in top_puts_oi['strike']:
+        fig.add_hline(y=strike, line=dict(color='red', width=1), annotation_text=f"{strike}")
+    
     fig.update_layout(
-        xaxis=dict(
-            title="Time", 
-            rangeslider=dict(visible=True),
-            type="date",
-            showspikes=True, spikecolor="grey", spikemode="across",
-            fixedrange=False  # Allow zooming on X axis
-        ),
-        yaxis=dict(
-            title="Price",
-            range=y_range,  # Adjusted Y-axis range
-            showspikes=True, spikecolor="grey", spikemode="across",
-            fixedrange=False  # Allow zooming on Y axis as well
-        ),
-        dragmode="pan",  # Pan mode to move around the chart
+        title=ticker,
+        xaxis_title='Time',
+        yaxis_title='Price',
         plot_bgcolor='black',
         paper_bgcolor='black',
         font=dict(color='white'),
-        margin=dict(l=40, r=40, t=40, b=40),
-        hovermode="closest",
-        updatemenus=[{
-            "buttons": [
-                {"args": ["xaxis.range", [data.index.min(), data.index.max()]], "label": "Reset Zoom", "method": "relayout"},
-                {"args": ["xaxis.range", [data.index.max() - timedelta(days=1), data.index.max()]], "label": "1D", "method": "relayout"},
-                {"args": ["xaxis.range", [data.index.max() - timedelta(days=7), data.index.max()]], "label": "1W", "method": "relayout"},
-                {"args": ["xaxis.range", [data.index.max() - timedelta(days=30), data.index.max()]], "label": "1M", "method": "relayout"},
-            ],
-            "direction": "down",
-            "showactive": True,
-        }]
+        xaxis_rangeslider_visible=False
     )
 
-    return title, close_price_title, fig
+    # Scaling logic for small charts
+    new_style = {'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+    
+    # Return the updated figure and the styles for each chart
+    return fig, new_style, new_style, new_style, new_style
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, host='127.0.0.1', port=8050)
+    app.run_server(debug=True, use_reloader=False)
