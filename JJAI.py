@@ -224,7 +224,7 @@ def update_charts(ticker, expiration_date, filter_1d, filter_1w, filter_1m, scal
     
     # Return the updated figure and the styles for each chart
     return fig, new_style, new_style, new_style, new_style
-
+ 
 
 if __name__ == '__main__':
     app.run_server(debug=True, use_reloader=False)
