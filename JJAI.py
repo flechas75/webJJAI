@@ -58,7 +58,7 @@ def create_chart(ticker):
         plot_bgcolor='black',
         paper_bgcolor='black',
         font=dict(color='white', size=6),
-        xaxis=dict(showgrid=True, showticklabels=True, tickformat='%H:%M', dtick=7200000),
+        xaxis=dict(showgrid=True, showticklabels=True, tickformat='%H:%M', dtick=3600000),
         yaxis=dict(showgrid=True, showticklabels=True),
         margin=dict(l=1, r=5, t=20, b=0)
     )
@@ -143,7 +143,7 @@ app.layout = html.Div(
      dd.Output('chart-QQQ', 'style'),
      dd.Output('chart-SPY', 'style'),
      dd.Output('chart-RUSELL 2000', 'style'),
-     dd.Output('chart-DIA', 'style')],
+     dd.Output('chart-DOW', 'style')],
     [dd.Input('symbol-input', 'value'),
      dd.Input('expiration-date-picker', 'date'),
      dd.Input('filter-1d', 'n_clicks'),
