@@ -107,23 +107,23 @@ app.layout = html.Div(
                 html.Div(
                     children=[
                         dcc.Graph(
-                            id='chart-NQ',
-                            figure=create_chart('NQ=F'),
+                            id='chart-QQQ',
+                            figure=create_chart('QQQ'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
-                            id='chart-ES',
-                            figure=create_chart('ES=F'),
+                            id='chart-SPY',
+                            figure=create_chart('SPY'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
-                            id='chart-RY',
-                            figure=create_chart('RY=F'),
+                            id='chart-RUSELL 2000',
+                            figure=create_chart('IWM'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
-                            id='chart-YM',
-                            figure=create_chart('YM=F'),
+                            id='chart-DOW',
+                            figure=create_chart('DIA'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         )
                     ],
@@ -140,10 +140,10 @@ app.layout = html.Div(
 # Callback for scaling charts and filtering data
 @app.callback(
     [dd.Output('options-graph', 'figure'),
-     dd.Output('chart-NQ', 'style'),
-     dd.Output('chart-ES', 'style'),
-     dd.Output('chart-RY', 'style'),
-     dd.Output('chart-YM', 'style')],
+     dd.Output('chart-QQQ', 'style'),
+     dd.Output('chart-SPY', 'style'),
+     dd.Output('chart-RUSELL 2000', 'style'),
+     dd.Output('chart-DIA', 'style')],
     [dd.Input('symbol-input', 'value'),
      dd.Input('expiration-date-picker', 'date'),
      dd.Input('filter-1d', 'n_clicks'),
