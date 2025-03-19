@@ -39,6 +39,7 @@ def fetch_chart_data(ticker, interval='1h'):
     return data
 
 # Function to create small charts
+# Function to create small charts with percentage change
 def create_chart(ticker):
     data = fetch_chart_data(ticker)
     fig = go.Figure()
@@ -51,27 +52,42 @@ def create_chart(ticker):
             close=data['Close'],
             name=ticker
         ))
-    fig.update_layout(
-        title=ticker,
-        xaxis_title='',
-        yaxis_title='',
-        plot_bgcolor='black',
-        paper_bgcolor='black',
-        font=dict(color='white', size=6),
-        xaxis=dict(showgrid=True, showticklabels=True, tickformat='%H:%M', dtick=7200000),
-        yaxis=dict(showgrid=True, showticklabels=True),
-        margin=dict(l=1, r=5, t=20, b=0)
-    )
+
+        # Calculate percentage change for the day
+        opening_price = data['Open'].iloc[0]  # First price of the day
+        closing_price = data['Close'].iloc[-1]  # Last price of the day
+        percent_change = ((closing_price - opening_price) / opening_price) * 100
+
+        # Format the title with the percentage change
+        percent_change_str = f"{percent_change:.2f}%"
+        
+        # Set the color based on the percentage change
+        if percent_change > 0:
+            color = 'green'
+        else:
+            color = 'red'
+
+        
+        # Set the title Layout
+        fig.update_layout(
+            title=f"{ticker} ({percent_change_str} today)",
+            xaxis_title='',
+            yaxis_title='',
+            plot_bgcolor='black',
+            paper_bgcolor='black',
+            font=dict(color='white', size=6),
+            xaxis=dict(showgrid=True, showticklabels=True, tickformat='%H:%M', dtick=7200000),
+            yaxis=dict(showgrid=True, showticklabels=True),
+            margin=dict(l=1, r=5, t=20, b=0),
+           
+        )
     return fig
+
 
 # Layout
 app.layout = html.Div(
-    style={'backgroundColor': 'black', 'color': 'white', 'padding': '20px', 'display': 'flex', 'flexDirection': 'column'},
+    style={'backgroundColor': 'black', 'color': 'white', 'padding': '20px', 'display': 'flex'},
     children=[
-        # Title at the top (Centered)
-        html.H1('Best Trading Zones', 
-                style={'textAlign': 'center', 'color': 'white', 'marginBottom': '20px'}),
-
         # Sidebar for filtering options on the left side
         html.Div(
             style={
@@ -111,23 +127,23 @@ app.layout = html.Div(
                 html.Div(
                     children=[
                         dcc.Graph(
-                            id='chart-NQ',
-                            figure=create_chart('NQ=F'),
+                            id='chart-QQQ',
+                            figure=create_chart('QQQ'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
-                            id='chart-ES',
-                            figure=create_chart('ES=F'),
+                            id='chart-SPY',
+                            figure=create_chart('SPY'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
-                            id='chart-RY',
-                            figure=create_chart('RY=F'),
+                            id='chart-RUSELL 2000',
+                            figure=create_chart('IWM'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
-                            id='chart-YM',
-                            figure=create_chart('YM=F'),
+                            id='chart-DOW',
+                            figure=create_chart('DIA'),
                             style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         )
                     ],
@@ -144,10 +160,10 @@ app.layout = html.Div(
 # Callback for scaling charts and filtering data
 @app.callback(
     [dd.Output('options-graph', 'figure'),
-     dd.Output('chart-NQ', 'style'),
-     dd.Output('chart-ES', 'style'),
-     dd.Output('chart-RY', 'style'),
-     dd.Output('chart-YM', 'style')],
+     dd.Output('chart-QQQ', 'style'),
+     dd.Output('chart-SPY', 'style'),
+     dd.Output('chart-RUSELL 2000', 'style'),
+     dd.Output('chart-DOW', 'style')],
     [dd.Input('symbol-input', 'value'),
      dd.Input('expiration-date-picker', 'date'),
      dd.Input('filter-1d', 'n_clicks'),
@@ -160,7 +176,7 @@ def update_charts(ticker, expiration_date, filter_1d, filter_1w, filter_1m, scal
     ctx = dash.callback_context
 
     if not ticker:
-        return go.Figure(), [{'height': '220px'}]* 4
+        return go.Figure(), {'height': '220px'}, {'height': '220px'}, {'height': '220px'}, {'height': '220px'}
 
     # Handle time filtering based on button clicks
     if ctx.triggered:
@@ -182,7 +198,7 @@ def update_charts(ticker, expiration_date, filter_1d, filter_1w, filter_1m, scal
     # Fetch main chart data
     data, top_calls_oi, top_puts_oi, top_calls_vol, top_puts_vol = fetch_data(ticker, expiration_date, start_time, end_time)
     if data is None or data.empty:
-        return go.Figure(), {'height': '220px'} * 4
+        return go.Figure(), {'height': '220px'}, {'height': '220px'}, {'height': '220px'}, {'height': '220px'}
 
     # Create the main chart figure
     fig = go.Figure()
@@ -204,15 +220,11 @@ def update_charts(ticker, expiration_date, filter_1d, filter_1w, filter_1m, scal
     )
 
     # Scaling logic for small charts
-    new_style = {'width': '24%', 'display': 'inline-block', 'height': '250px', 'border': '1px solid white'}
+    new_style = {'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
     
-    if scale_up:
-        new_style['height'] = '300px'
-    
-    if scale_down:
-        new_style['height'] = '180px'
-    
-    return fig, [new_style]*4
+    # Return the updated figure and the styles for each chart
+    return fig, new_style, new_style, new_style, new_style
+
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, use_reloader=False)

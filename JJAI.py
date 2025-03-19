@@ -39,6 +39,7 @@ def fetch_chart_data(ticker, interval='1h'):
     return data
 
 # Function to create small charts
+# Function to create small charts with percentage change
 def create_chart(ticker):
     data = fetch_chart_data(ticker)
     fig = go.Figure()
@@ -51,18 +52,37 @@ def create_chart(ticker):
             close=data['Close'],
             name=ticker
         ))
-    fig.update_layout(
-        title=ticker,
-        xaxis_title='',
-        yaxis_title='',
-        plot_bgcolor='black',
-        paper_bgcolor='black',
-        font=dict(color='white', size=6),
-        xaxis=dict(showgrid=True, showticklabels=True, tickformat='%H:%M', dtick=3600000),
-        yaxis=dict(showgrid=True, showticklabels=True),
-        margin=dict(l=1, r=5, t=20, b=0)
-    )
+
+        # Calculate percentage change for the day
+        opening_price = data['Open'].iloc[0]  # First price of the day
+        closing_price = data['Close'].iloc[-1]  # Last price of the day
+        percent_change = ((closing_price - opening_price) / opening_price) * 100
+
+        # Format the title with the percentage change
+        percent_change_str = f"{percent_change:.2f}%"
+        
+        # Set the color based on the percentage change
+        if percent_change > 0:
+            color = 'green'
+        else:
+            color = 'red'
+
+        
+        # Set the title Layout
+        fig.update_layout(
+            title=f"{ticker} ({percent_change_str} today)",
+            xaxis_title='',
+            yaxis_title='',
+            plot_bgcolor='black',
+            paper_bgcolor='black',
+            font=dict(color='white', size=6),
+            xaxis=dict(showgrid=True, showticklabels=True, tickformat='%H:%M', dtick=7200000),
+            yaxis=dict(showgrid=True, showticklabels=True),
+            margin=dict(l=1, r=5, t=20, b=0),
+           
+        )
     return fig
+
 
 # Layout
 app.layout = html.Div(
