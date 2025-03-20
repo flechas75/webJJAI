@@ -129,25 +129,25 @@ app.layout = html.Div(
                         dcc.Graph(
                             id='chart-QQQ',
                             figure=create_chart('QQQ'),
-                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                            style={'width': '200px', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
                             id='chart-SPY',
                             figure=create_chart('SPY'),
-                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                            style={'width': '200px', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
                             id='chart-RUSELL 2000',
                             figure=create_chart('IWM'),
-                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                            style={'width': '200px', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         ),
                         dcc.Graph(
                             id='chart-DOW',
                             figure=create_chart('DIA'),
-                            style={'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+                            style={'width': '200px', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
                         )
                     ],
-                    style={'textAlign': 'center', 'marginBottom': '10px', 'display': 'flex', 'justifyContent': 'center'}
+                    style={'textAlign': 'center', 'marginBottom': '12px', 'display': 'flex', 'justifyContent': 'flex-start'}
                 ),
 
                 # Main chart below the small charts
@@ -220,11 +220,11 @@ def update_charts(ticker, expiration_date, filter_1d, filter_1w, filter_1m, scal
     )
 
     # Scaling logic for small charts
-    new_style = {'width': '24%', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
+    new_style = {'width': '200px', 'display': 'inline-block', 'height': '220px', 'border': '1px solid white', 'padding': '0px'}
     
     # Return the updated figure and the styles for each chart
     return fig, new_style, new_style, new_style, new_style
- 
+
 
 if __name__ == '__main__':
     app.run_server(debug=True, use_reloader=False)
